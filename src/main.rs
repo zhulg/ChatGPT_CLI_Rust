@@ -1,4 +1,5 @@
 use clap::{Arg, ArgAction, Command};
+
 use colored::*;
 use console::Style;
 use dialoguer::{console, Input};
@@ -10,16 +11,41 @@ use text2art::{BasicFonts, Font, Printer};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = Command::new("Decompile APK")
+    let matches = Command::new("ChatGPT CLI")
         .author("lg.json@gmail.com")
         .version("1.0.0")
         .about(
             "x\n
-                    ChatGPT CLI Create by zhulg (lg.json@gmail.com)                    
-            | 1.you just need to input your api key, the cli version V1.0.0    |
-            | 2.no need access internet with VPN  and enjoy it.                |
-            | 3.if you want to use it in China,you can use my api key.         |                                                   |
-            |------------------------------------------------------------------|",
+                    ChatGPT CLI Create by zhulg (lg.json@gmail.com)
+            | 1.You just need to input your api key, the cli version V1.0.0     |
+            | 2.No need access internet with VPN, and just enjoy it.            |
+            | 3.If you want to use it in China, you can use my api key.         |                                                   |
+            |-------------------------------------------------------------------|",
+        )
+        .arg(
+            Arg::new("DomainName")
+                .action(ArgAction::Set)
+                .short('d')
+                .long("Domain")
+                .default_value("api.openai.com")
+                .help("Sets the API Domain name."),
+        )
+        .arg(
+            Arg::new("APIKey")
+                .action(ArgAction::Set)
+                .short('k').
+                long("key")
+                .default_value("")
+            .help("Sets the API key. If not provided, the cli will ask for it,\n\
+             You can also set the OPENAI_API_KEY environment variable."),
+        )
+        .arg(
+            Arg::new("max_tokens")
+                .action(ArgAction::Set)
+                .short('t')
+                .long("tokens")
+                .default_value("1000")
+                .help("sets the max_tokens, default is 1000"),
         )
         .after_help(
             "Longer explanation to appear after the options when \
@@ -27,10 +53,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .get_matches();
 
-    let api_key = read_api_key();
+    let domain_name = matches.get_one::<String>("DomainName").unwrap();
+    let api_key_cli = matches.get_one::<String>("APIKey").unwrap();
+    let max_tokens = matches.get_one::<String>("max_tokens").unwrap();
+    let mut api_key = String::new();
+    if api_key_cli.is_empty() {
+        api_key = read_api_key();
+    }
     show_logo();
-    // let url = "https://api.openai.com/v1/completions";
-    let url = "https://openapi.ssiic.com/v1/completions";
+    let url = format!("https://{}/v1/chat/completions", domain_name);
     let mut rl = rustyline::DefaultEditor::new()?;
 
     loop {
@@ -43,7 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if line.is_empty() {
                     continue;
                 }
-                requestgpt(url, &api_key, &line).await?;
+                requestgpt(&url, &api_key, &line, &max_tokens).await?;
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Control+C");
@@ -66,6 +97,7 @@ async fn requestgpt(
     url: &str,
     api_key: &String,
     line: &String,
+    max_tokens: &String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
     let response = client
@@ -73,22 +105,21 @@ async fn requestgpt(
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", api_key))
         .json(&json!({
-            "model": "text-davinci-001",
-            // "prompt": "hello chatgpt",
-            "prompt": format!("{}", line),
-            "max_tokens":200,
-            "temperature": 0.5
+            "model": "gpt-3.5-turbo",
+            "max_tokens": max_tokens.parse::<i32>().unwrap(),
+            "temperature": 0.5 ,
+            "messages": [{"role": "user", "content": line}]
         }))
         .send()
         .await?
         .json::<Value>()
         .await?;
-    println!("{:?}", response["choices"][0]["text"].clone());
-    let text1: String = response["choices"][0]["text"]
+    //  dbg!(response);
+    let text1: String = response["choices"][0]["message"]["content"]
         .as_str()
         .unwrap_or_default()
         .to_owned();
-    println!("{}", format!("ChatGPT: {}", text1).green());
+    println!("{}", format!("ChatGPT:{}", text1).green());
     Ok(())
 }
 
@@ -98,18 +129,18 @@ fn show_logo() {
         Err(_) => panic!("something wrong with font"),
     };
     let prntr = Printer::with_font(font);
-    prntr.print_to_stdio("ChatGPT By Rust ").ok();
+    prntr.print_to_stdio("      ChatGPT CLI    ").ok();
 }
 
 fn read_api_key() -> String {
     // If the OPENAI_API_KEY environment variable is not set,
     // ask the user to input the API key and save it to the
     // environment variables for future use.
-    let api_key = env::var("OPENAI_API_KEY2").unwrap_or_else(|_| {
+    let api_key = env::var("OPENAI_API_KEY").unwrap_or_else(|_| {
         console::set_colors_enabled(true);
         let prompt_style = Style::new().yellow();
         let api_key: String = Input::new()
-            .with_prompt(prompt_style.apply_to("请输入你的API KEY").to_string())
+            .with_prompt(prompt_style.apply_to("Input your API key").to_string())
             .interact_text()
             .unwrap();
         env::set_var("OPENAI_API_KEY", &api_key);
