@@ -20,27 +20,6 @@ cargo build
   ```
 - CLI UI
   
-  
-  ```
-                                                                _____  _             _     _____  _____   _______      _____  _       _____
-                                                             / ____|| |           | |   / ____||  __ \ |__   __|    / ____|| |     |_   _|
-                                                            | |     | |__    __ _ | |_ | |  __ | |__) |   | |      | |     | |       | |
-                                                            | |     | '_ \  / _` || __|| | |_ ||  ___/    | |      | |     | |       | |
-                                                            | |____ | | | || (_| || |_ | |__| || |        | |      | |____ | |____  _| |_
-                                                             \_____||_| |_| \__,_| \__| \_____||_|        |_|       \_____||______||_____|
-enter your message:What is ChatGPT?
-ChatGPT:
-
-ChatGPT is an online platform that provides a chat service for people to connect and communicate with each other. It offers a safe and secure environment for users to share their thoughts, feelings, and ideas with others. The platform is designed to facilitate conversations between people from different backgrounds and cultures, and it encourages open-mindedness and respect for diversity. ChatGPT also provides various chat rooms based on different topics, interests, and hobbies, allowing users to find like-minded people and engage in meaningful discussions.
-enter your message:What can ChatGPT do?
-ChatGPT:
-
-As an AI language model, I can generate responses to user queries and provide information on a wide range of topics. I can also engage in conversations and answer questions related to various subjects such as science, technology, entertainment, history, and more. Additionally, I can assist users in tasks such as finding information, solving problems, and making recommendations.
-enter your message:
-```
-
-
-
 - chatgpt_rust --help 
 
 ```
