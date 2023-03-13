@@ -1,24 +1,25 @@
-## ChatGPT CLI
+# ChatGPT CLI
 
 
 - A tool for chatting using the ChatGPT API, written in Rust CLI.
 - You can use this tool to chat, just by setting your API Key.
 - You can modify the API domain and other API parameters when you start the chat.
+- If you like this tool, please join me to complete the TODO list, and let's improve this tool together
 
-### Install
+## Install
 
 ```
 cargo build
 ```
 
-### Usage
+## Usage
 
 - Linux/MacOS Run the following command in your terminal:
 
   ```
   ./chatgpt_rust
   ```
-- CLI UI
+![](./img/chatgpt_cli.png)
   
 - chatgpt_rust --help 
 
@@ -43,7 +44,7 @@ Options:
 
 ```
 
-### Option:
+## Option:
  Set your ‘OPENAI_API_KEY’ Environment Variable using zsh,  No set will ask the user to input the API key in the terminal.
 
 1. Run the following command in your terminal, replacing yourkey with your API key. 
@@ -64,7 +65,7 @@ echo $OPENAI_API_KEY
 ```
 The value of your API key will be the resulting output.
 
-### TODO:
+## TODO:
 - [ ] Add more API parameters support
 - [ ] Support save message to file
 - [ ] import chat message from file

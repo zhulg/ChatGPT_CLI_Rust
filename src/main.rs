@@ -154,8 +154,8 @@ fn show_logo() {
     let prntr = Printer::with_font(font);
     prntr
         .print_to_stdio(
-            "                  
-                   ChatGPT CLI     ",
+            "
+                ChatGPT CLI     ",
         )
         .ok();
 }
