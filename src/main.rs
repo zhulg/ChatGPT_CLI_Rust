@@ -1,12 +1,13 @@
 use clap::{Arg, ArgAction, Command};
-
 use colored::*;
 use console::Style;
 use dialoguer::{console, Input};
-use reqwest;
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::{self};
 use rustyline::error::ReadlineError;
 use serde_json::{json, Value};
 use std::env;
+use std::time::Duration;
 use text2art::{BasicFonts, Font, Printer};
 
 #[tokio::main]
@@ -99,6 +100,7 @@ async fn requestgpt(
     line: &String,
     max_tokens: &String,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let pb = show_progressbar();
     let client = reqwest::Client::new();
     let response = client
         .post(url)
@@ -114,13 +116,34 @@ async fn requestgpt(
         .await?
         .json::<Value>()
         .await?;
-    //  dbg!(response);
-    let text1: String = response["choices"][0]["message"]["content"]
+    //dbg!(response);
+    if response["choices"].is_null() {
+        println!(
+            "{}",
+            "ChatGPT: Something wrong with your api key or network errors, please check it.".red()
+        );
+        pb.finish_and_clear();
+        return Ok(());
+    }
+    pb.finish_and_clear();
+    let response_content: String = response["choices"][0]["message"]["content"]
         .as_str()
         .unwrap_or_default()
         .to_owned();
-    println!("{}", format!("ChatGPT:{}", text1).green());
+    println!("{}", format!("ChatGPT:{}", response_content).green());
     Ok(())
+}
+
+fn show_progressbar() -> ProgressBar {
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(Duration::from_millis(125));
+    pb.set_style(
+        ProgressStyle::with_template("{spinner:.green} {msg}")
+            .unwrap()
+            .tick_strings(&["∙∙∙", "●∙∙", "∙●∙", "∙∙●", "∙∙∙"]),
+    );
+    pb.set_message("waiting for response...");
+    pb
 }
 
 fn show_logo() {
@@ -129,7 +152,12 @@ fn show_logo() {
         Err(_) => panic!("something wrong with font"),
     };
     let prntr = Printer::with_font(font);
-    prntr.print_to_stdio("      ChatGPT CLI    ").ok();
+    prntr
+        .print_to_stdio(
+            "                  
+                   ChatGPT CLI     ",
+        )
+        .ok();
 }
 
 fn read_api_key() -> String {

@@ -17,4 +17,5 @@ tokio = { version = "1.26.0", features = ["full"] }
 text2art = "1.0.1"
 encoding_rs = "0.8.32"
 rustyline = "11.0.0"
+indicatif = "0.17.3"
 
