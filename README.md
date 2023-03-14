@@ -8,8 +8,23 @@
 
 ## Install
 
+### source code 
+  1. build code 
 ```
 cargo build
+```
+  2. cd target/debug 
+    
+```
+   ./chatgpt_rust
+```
+
+### Other Install
+
+- If you have Rust installed, you can install the CLI using cargo:
+
+```
+cargo install chatgpt_rust
 ```
 
 ## Usage
@@ -17,7 +32,7 @@ cargo build
 - Linux/MacOS Run the following command in your terminal:
 
   ```
-  ./chatgpt_rust
+  chatgpt_rust
   ```
 ![](./img/chatgpt_cli.png)
   

@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .about(
             "x\n
                     ChatGPT CLI Create by zhulg (lg.json@gmail.com)
-            | 1.You just need to input your api key, the cli version V0.1.0     |
+            | 1.You just need to input your api key, the cli version V0.1.1     |
             | 2.No need access internet with VPN, and just enjoy it.            |
             | 3.If you want to use it in China, you can use my api key.         |                                                   |
             |-------------------------------------------------------------------|",
