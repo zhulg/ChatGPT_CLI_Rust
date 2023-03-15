@@ -27,6 +27,10 @@ cargo build
 cargo install chatgpt_rust
 ```
 
+## Download
+- Precompiled from [GitHub Release](https://github.com/zhulg/ChatGPT_CLI_Rust/releases)
+
+
 ## Usage
 
 - Linux/MacOS Run the following command in your terminal:
