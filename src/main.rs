@@ -57,11 +57,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let domain_name = matches.get_one::<String>("DomainName").unwrap();
     let api_key_cli = matches.get_one::<String>("APIKey").unwrap();
     let max_tokens = matches.get_one::<String>("max_tokens").unwrap();
+    show_logo();
     let mut api_key = String::new();
     if api_key_cli.is_empty() {
         api_key = read_api_key();
     }
-    show_logo();
     let url = format!("https://{}/v1/chat/completions", domain_name);
     let mut rl = rustyline::DefaultEditor::new()?;
 
