@@ -6,9 +6,31 @@
 - You can modify the API domain and other API parameters when you start the chat.
 - If you like this tool, please join me to complete the TODO list, and let's improve this tool together
 
-## Install
 
-### source code 
+## QuickStart 
+- **Download** [GitHub Release](https://github.com/zhulg/ChatGPT_CLI_Rust/releases)
+
+## Usage
+
+- Linux/MacOS Run the following command in your terminal:
+
+  ```
+  chatgpt_rust
+  ```
+![](./img/chatgpt_cli.png)
+
+
+## cargo Install
+
+- **If you have Rust installed, you can install the CLI using cargo:**
+
+```
+cargo install chatgpt_rust
+```
+
+
+## Install from source code
+
   1. build code 
 ```
 cargo build
@@ -19,27 +41,11 @@ cargo build
    ./chatgpt_rust
 ```
 
-### Other Install
-
-- If you have Rust installed, you can install the CLI using cargo:
-
-```
-cargo install chatgpt_rust
-```
-
-## Download
-- Precompiled from [GitHub Release](https://github.com/zhulg/ChatGPT_CLI_Rust/releases)
 
 
-## Usage
+## User Guide
 
-- Linux/MacOS Run the following command in your terminal:
 
-  ```
-  chatgpt_rust
-  ```
-![](./img/chatgpt_cli.png)
-  
 - chatgpt_rust --help 
 
 ```
