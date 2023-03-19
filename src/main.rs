@@ -41,10 +41,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
              You can also set the OPENAI_API_KEY environment variable."),
         )
         .arg(
-            Arg::new("max_tokens")
+            Arg::new("model")
+                .action(ArgAction::Set)
+                .short('m')
+                .long("model")
+                .default_value("gpt-3.5-turbo")
+                .help("Sets the GPT model to use. gpt-3.5-turbo or gpt-3.5-turbo-0301"),
+        )
+        .arg(
+            Arg::new("temperature")
                 .action(ArgAction::Set)
                 .short('t')
-                .long("tokens")
+                .long("temperature")
+                .default_value("0.5")
+                .help("Sets the temperature for text generation."),
+        )
+        .arg(
+            Arg::new("max_tokens")
+                .action(ArgAction::Set)
+                .short('l')
+                .long("length")
                 .default_value("1000")
                 .help("sets the max_tokens, default is 1000"),
         )
@@ -57,6 +73,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let domain_name = matches.get_one::<String>("DomainName").unwrap();
     let api_key_cli = matches.get_one::<String>("APIKey").unwrap();
     let max_tokens = matches.get_one::<String>("max_tokens").unwrap();
+    let model = matches.get_one::<String>("model").unwrap();
+    let temperature = matches.get_one::<String>("temperature").unwrap();
     show_logo();
     let mut api_key = String::new();
     if api_key_cli.is_empty() {
@@ -75,7 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if line.is_empty() {
                     continue;
                 }
-                requestgpt(&url, &api_key, &line, &max_tokens).await?;
+                requestgpt(&url, &api_key, &line, &max_tokens,model,temperature).await?;
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Control+C");
@@ -99,6 +117,8 @@ async fn requestgpt(
     api_key: &String,
     line: &String,
     max_tokens: &String,
+    model: &String,
+    temperature: &String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let pb = show_progressbar();
     let client = reqwest::Client::new();
@@ -107,16 +127,16 @@ async fn requestgpt(
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", api_key))
         .json(&json!({
-            "model": "gpt-3.5-turbo",
+            "model": model,
             "max_tokens": max_tokens.parse::<i32>().unwrap(),
-            "temperature": 0.5 ,
+            "temperature": temperature.parse::<f32>().unwrap(),
             "messages": [{"role": "user", "content": line}]
         }))
         .send()
         .await?
         .json::<Value>()
         .await?;
-    //dbg!(response);
+    // dbg!(response);
     if response["choices"].is_null() {
         println!(
             "{}",
