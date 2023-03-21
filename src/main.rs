@@ -1,14 +1,10 @@
+mod gptcli_utils;
 use clap::{Arg, ArgAction, Command};
 use colored::*;
-use console::Style;
-use dialoguer::{console, Input};
-use indicatif::{ProgressBar, ProgressStyle};
+use gptcli_utils::{read_api_key, show_logo, show_progressbar};
 use reqwest::{self};
 use rustyline::error::ReadlineError;
 use serde_json::{json, Value};
-use std::env;
-use std::time::Duration;
-use text2art::{BasicFonts, Font, Printer};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -93,7 +89,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if line.is_empty() {
                     continue;
                 }
-                requestgpt(&url, &api_key, &line, &max_tokens,model,temperature).await?;
+                request_gpt(GptRequestParams {
+                    url: &url,
+                    api_key: &api_key,
+                    line: &line,
+                    max_tokens: max_tokens.parse().unwrap(),
+                    model: &model,
+                    temperature: temperature.parse().unwrap(),
+                })
+                .await?;
+                // requestgpt(&url, &api_key, &line, &max_tokens, model, temperature).await?;
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Control+C");
@@ -112,87 +117,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn requestgpt(
-    url: &str,
-    api_key: &String,
-    line: &String,
-    max_tokens: &String,
-    model: &String,
-    temperature: &String,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let pb = show_progressbar();
+struct GptRequestParams<'a> {
+    url: &'a str,
+    api_key: &'a str,
+    line: &'a str,
+    max_tokens: i32,
+    model: &'a str,
+    temperature: f32,
+}
+
+async fn send_gpt_request(
+    params: GptRequestParams<'_>,
+) -> Result<String, Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
     let response = client
-        .post(url)
+        .post(params.url)
         .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Authorization", format!("Bearer {}", params.api_key))
         .json(&json!({
-            "model": model,
-            "max_tokens": max_tokens.parse::<i32>().unwrap(),
-            "temperature": temperature.parse::<f32>().unwrap(),
-            "messages": [{"role": "user", "content": line}]
+            "model": params.model,
+            "max_tokens": params.max_tokens,
+            "temperature": params.temperature,
+            "messages": [{"role": "user", "content": params.line}]
         }))
         .send()
         .await?
         .json::<Value>()
         .await?;
-    // dbg!(response);
     if response["choices"].is_null() {
-        println!(
-            "{}",
-            "ChatGPT: Something wrong with your api key or network errors, please check it.".red()
-        );
-        pb.finish_and_clear();
-        return Ok(());
+        return Err("Something wrong with your api key or network errors, please check it.".into());
     }
-    pb.finish_and_clear();
     let response_content: String = response["choices"][0]["message"]["content"]
         .as_str()
         .unwrap_or_default()
         .to_owned();
+    Ok(response_content)
+}
+
+async fn request_gpt(params: GptRequestParams<'_>) -> Result<(), Box<dyn std::error::Error>> {
+    let pb = show_progressbar();
+    let response_content = send_gpt_request(params).await?;
+    pb.finish_and_clear();
     println!("{}", format!("ChatGPT:{}", response_content).green());
     Ok(())
-}
-
-fn show_progressbar() -> ProgressBar {
-    let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(Duration::from_millis(125));
-    pb.set_style(
-        ProgressStyle::with_template("{spinner:.green} {msg}")
-            .unwrap()
-            .tick_strings(&["∙∙∙", "●∙∙", "∙●∙", "∙∙●", "∙∙∙"]),
-    );
-    pb.set_message("waiting for response...");
-    pb
-}
-
-fn show_logo() {
-    let font = match Font::from_basic(BasicFonts::Big) {
-        Ok(font) => font,
-        Err(_) => panic!("something wrong with font"),
-    };
-    let prntr = Printer::with_font(font);
-    prntr
-        .print_to_stdio(
-            "
-                ChatGPT CLI     ",
-        )
-        .ok();
-}
-
-fn read_api_key() -> String {
-    // If the OPENAI_API_KEY environment variable is not set,
-    // ask the user to input the API key and save it to the
-    // environment variables for future use.
-    let api_key = env::var("OPENAI_API_KEY").unwrap_or_else(|_| {
-        console::set_colors_enabled(true);
-        let prompt_style = Style::new().yellow();
-        let api_key: String = Input::new()
-            .with_prompt(prompt_style.apply_to("Input your API key").to_string())
-            .interact_text()
-            .unwrap();
-        env::set_var("OPENAI_API_KEY", &api_key);
-        api_key
-    });
-    api_key
 }
