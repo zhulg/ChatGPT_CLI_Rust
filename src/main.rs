@@ -1,10 +1,10 @@
+mod gptcli_net;
 mod gptcli_utils;
 use clap::{Arg, ArgAction, Command};
 use colored::*;
+use gptcli_net::{send_gpt_request, GptRequestParams};
 use gptcli_utils::{read_api_key, show_logo, show_progressbar};
-use reqwest::{self};
 use rustyline::error::ReadlineError;
-use serde_json::{json, Value};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,6 +37,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
              You can also set the OPENAI_API_KEY environment variable."),
         )
         .arg(
+            Arg::new("prompt")
+                .action(ArgAction::Set)
+                .short('p')
+                .long("prompt")
+                .default_value("")
+                .help("Sets the prompt for this session."),
+        )
+        .arg(
             Arg::new("model")
                 .action(ArgAction::Set)
                 .short('m')
@@ -66,19 +74,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .get_matches();
 
+    // show_logo();
     let domain_name = matches.get_one::<String>("DomainName").unwrap();
-    let api_key_cli = matches.get_one::<String>("APIKey").unwrap();
     let max_tokens = matches.get_one::<String>("max_tokens").unwrap();
     let model = matches.get_one::<String>("model").unwrap();
     let temperature = matches.get_one::<String>("temperature").unwrap();
-    show_logo();
+    let api_key_cli = matches.get_one::<String>("APIKey").unwrap();
+    let url = format!("https://{}/v1/chat/completions", domain_name);
     let mut api_key = String::new();
     if api_key_cli.is_empty() {
         api_key = read_api_key();
     }
-    let url = format!("https://{}/v1/chat/completions", domain_name);
-    let mut rl = rustyline::DefaultEditor::new()?;
 
+    let prompt = matches.get_one::<String>("prompt").unwrap();
+    if !prompt.is_empty() {
+        println!("{}{}", "your prompt is:".on_blue(), prompt.on_blue());
+        request_gpt(GptRequestParams {
+            url: &url,
+            api_key: &api_key,
+            line: &prompt,
+            max_tokens: max_tokens.parse().unwrap(),
+            model: &model,
+            temperature: temperature.parse().unwrap(),
+        })
+        .await?;
+    }
+
+    let mut rl = rustyline::DefaultEditor::new()?;
     loop {
         let readline = rl.readline("enter your message:");
         match readline {
@@ -98,7 +120,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     temperature: temperature.parse().unwrap(),
                 })
                 .await?;
-                // requestgpt(&url, &api_key, &line, &max_tokens, model, temperature).await?;
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Control+C");
@@ -115,43 +136,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
-}
-
-struct GptRequestParams<'a> {
-    url: &'a str,
-    api_key: &'a str,
-    line: &'a str,
-    max_tokens: i32,
-    model: &'a str,
-    temperature: f32,
-}
-
-async fn send_gpt_request(
-    params: GptRequestParams<'_>,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let client = reqwest::Client::new();
-    let response = client
-        .post(params.url)
-        .header("Content-Type", "application/json")
-        .header("Authorization", format!("Bearer {}", params.api_key))
-        .json(&json!({
-            "model": params.model,
-            "max_tokens": params.max_tokens,
-            "temperature": params.temperature,
-            "messages": [{"role": "user", "content": params.line}]
-        }))
-        .send()
-        .await?
-        .json::<Value>()
-        .await?;
-    if response["choices"].is_null() {
-        return Err("Something wrong with your api key or network errors, please check it.".into());
-    }
-    let response_content: String = response["choices"][0]["message"]["content"]
-        .as_str()
-        .unwrap_or_default()
-        .to_owned();
-    Ok(response_content)
 }
 
 async fn request_gpt(params: GptRequestParams<'_>) -> Result<(), Box<dyn std::error::Error>> {
