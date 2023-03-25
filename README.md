@@ -21,7 +21,7 @@
 
 - **Use prompt:** chatgpt_rust -p "xxxx"
 
-![](./img/chatgpt_prompt.png)
+![](./img/prompt.png)
 
 ## cargo Install
 
