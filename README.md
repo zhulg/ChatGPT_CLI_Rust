@@ -7,7 +7,7 @@
 - If you like this tool, please join me to complete the TODO list, and let's improve this tool together
 
 
-## QuickStart 
+## QuickStart
 - **Download** [GitHub Release](https://github.com/zhulg/ChatGPT_CLI_Rust/releases)
 
 ## Usage
@@ -19,6 +19,9 @@
   ```
 ![](./img/chatgpt_cli.png)
 
+- **Use prompt:** chatgpt_rust -p "xxxx"
+
+![](./img/chatgpt_prompt.png)
 
 ## cargo Install
 
@@ -31,12 +34,12 @@ cargo install chatgpt_rust
 
 ## Install from source code
 
-  1. build code 
+  1. build code
 ```
 cargo build
 ```
-  2. cd target/debug 
-    
+  2. cd target/debug
+
 ```
    ./chatgpt_rust
 ```
@@ -46,33 +49,36 @@ cargo build
 ## User Guide
 
 
-- chatgpt_rust --help 
+- chatgpt_rust --help
 
 ```
-
                     ChatGPT CLI Create by zhulg (lg.json@gmail.com)
-            | 1.You just need to input your api key, the cli version    |
-            | 2.No need access internet with VPN, and just enjoy it.    |
-            | 3.If you want to use it in China, you can use my api key. |
-            | --------------------------------------------------------- |
+            | 1.You just need to input your api key, the cli version V0.2.0     |
+            | 2.You can modify the API domain and other API parameters          |
+            | 3.If you want to use it in China, you can use my api key          |
+            |-------------------------------------------------------------------|
 
 Usage: chatgpt_rust [OPTIONS]
 
 Options:
-  -d, --Domain <DomainName>  Sets the API Domain name. [default: api.openai.com]
-  -k, --key <APIKey>         Sets the API key. If not provided, the cli will ask for it,
-                             You can also set the OPENAI_API_KEY environment variable. [default: ]
-  -t, --tokens <max_tokens>  sets the max_tokens, default is 1000 [default: 1000]
-  -h, --help                 Print help
-  -V, --version              Print version
- 
+  -d, --Domain <DomainName>        Sets the API Domain name. [default: api.openai.com]
+  -k, --key <APIKey>               Sets the API key. If not provided, the cli will ask for it,
+                                   You can also set the OPENAI_API_KEY environment variable. [default: ]
+  -p, --prompt <prompt>            Sets the prompt for this session. [default: ]
+  -m, --model <model>              Sets the GPT model to use. gpt-3.5-turbo or gpt-3.5-turbo-0301 [default: gpt-3.5-turbo]
+  -t, --temperature <temperature>  Sets the temperature for text generation. [default: 0.5]
+  -l, --length <max_tokens>        sets the max_tokens, default is 1000 [default: 1000]
+  -h, --help                       Print help
+  -V, --version                    Print version
+
+Longer explanation to appear after the options when displaying the help information from --help or -h
 
 ```
 
 ## Option:
  Set your ‘OPENAI_API_KEY’ Environment Variable using zsh,  No set will ask the user to input the API key in the terminal.
 
-1. Run the following command in your terminal, replacing yourkey with your API key. 
+1. Run the following command in your terminal, replacing yourkey with your API key.
 
 ```
 echo "export OPENAI_API_KEY='yourkey'" >> ~/.zshrc
@@ -83,8 +89,8 @@ echo "export OPENAI_API_KEY='yourkey'" >> ~/.zshrc
 ```
 source ~/.zshrc
 ```
-3. Confirm that you have set your environment variable using the following command. 
-   
+3. Confirm that you have set your environment variable using the following command.
+
 ```
 echo $OPENAI_API_KEY
 ```

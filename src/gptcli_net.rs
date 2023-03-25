@@ -6,10 +6,10 @@ use std::fmt::{Display, Formatter};
 pub struct GptRequestParams<'a> {
     pub url: &'a str,
     pub api_key: &'a str,
-    pub line: &'a str,
     pub max_tokens: u32,
     pub model: &'a str,
     pub temperature: f32,
+    pub messages: &'a Vec<GptMessage>,
 }
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ impl Display for GptError {
 
 impl Error for GptError {}
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct GptRequest {
     model: String,
     max_tokens: u32,
@@ -33,10 +33,10 @@ struct GptRequest {
     messages: Vec<GptMessage>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct GptMessage {
-    role: String,
-    content: String,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GptMessage {
+    pub role: String,
+    pub content: String,
 }
 
 pub async fn send_gpt_request(params: GptRequestParams<'_>) -> Result<String, Box<dyn Error>> {
@@ -44,12 +44,10 @@ pub async fn send_gpt_request(params: GptRequestParams<'_>) -> Result<String, Bo
         model: params.model.to_string(),
         max_tokens: params.max_tokens,
         temperature: params.temperature,
-        messages: vec![GptMessage {
-            role: "user".to_string(),
-            content: params.line.to_string(),
-        }],
+        messages: params.messages.clone(),
     };
 
+    // dbg!(request.clone());
     let client = reqwest::Client::new();
     let response = client
         .post(params.url)
@@ -61,9 +59,6 @@ pub async fn send_gpt_request(params: GptRequestParams<'_>) -> Result<String, Bo
         .error_for_status()?
         .json::<serde_json::Value>()
         .await?;
-
-    // dbg!(response);
-    // Ok("".to_string())
 
     let choices = response
         .get("choices")

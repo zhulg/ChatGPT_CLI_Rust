@@ -1,5 +1,6 @@
 mod gptcli_net;
 mod gptcli_utils;
+use crate::gptcli_net::GptMessage;
 use clap::{Arg, ArgAction, Command};
 use colored::*;
 use gptcli_net::{send_gpt_request, GptRequestParams};
@@ -14,8 +15,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .about(
             "x\n
                     ChatGPT CLI Create by zhulg (lg.json@gmail.com)
-            | 1.You just need to input your api key, the cli version V0.1.1     |
-            | 2.No need access internet with VPN, and just enjoy it.            |
+            | 1.You just need to input your api key, the cli version V0.2.0     |
+            | 2.You can modify the API domain and other API parameters          |
             | 3.If you want to use it in China, you can use my api key.         |                                                   |
             |-------------------------------------------------------------------|",
         )
@@ -74,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .get_matches();
 
-    // show_logo();
+    show_logo();
     let domain_name = matches.get_one::<String>("DomainName").unwrap();
     let max_tokens = matches.get_one::<String>("max_tokens").unwrap();
     let model = matches.get_one::<String>("model").unwrap();
@@ -86,18 +87,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         api_key = read_api_key();
     }
 
+    let mut messages: Vec<GptMessage> = Vec::new();
+
     let prompt = matches.get_one::<String>("prompt").unwrap();
     if !prompt.is_empty() {
         println!("{}{}", "your prompt is:".on_blue(), prompt.on_blue());
-        request_gpt(GptRequestParams {
+        messages.push(GptMessage {
+            role: "system".to_string(),
+            content: prompt.to_string(),
+        });
+
+        let assistant_message = request_gpt(GptRequestParams {
             url: &url,
             api_key: &api_key,
-            line: &prompt,
+            messages: &messages,
             max_tokens: max_tokens.parse().unwrap(),
             model: &model,
             temperature: temperature.parse().unwrap(),
         })
         .await?;
+
+        messages.push(assistant_message.clone());
     }
 
     let mut rl = rustyline::DefaultEditor::new()?;
@@ -111,15 +121,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if line.is_empty() {
                     continue;
                 }
-                request_gpt(GptRequestParams {
+
+                messages.push(GptMessage {
+                    role: "user".to_string(),
+                    content: line.to_string(),
+                });
+                let assistant_message = request_gpt(GptRequestParams {
                     url: &url,
                     api_key: &api_key,
-                    line: &line,
+                    messages: &messages,
                     max_tokens: max_tokens.parse().unwrap(),
                     model: &model,
                     temperature: temperature.parse().unwrap(),
                 })
                 .await?;
+                messages.push(assistant_message.clone());
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Control+C");
@@ -138,10 +154,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn request_gpt(params: GptRequestParams<'_>) -> Result<(), Box<dyn std::error::Error>> {
+async fn request_gpt(
+    params: GptRequestParams<'_>,
+) -> Result<GptMessage, Box<dyn std::error::Error>> {
     let pb = show_progressbar();
     let response_content = send_gpt_request(params).await?;
+
+    let assistant_message = GptMessage {
+        role: "assistant".to_string(),
+        content: response_content.to_string(),
+    };
     pb.finish_and_clear();
     println!("{}", format!("ChatGPT:{}", response_content).green());
-    Ok(())
+    Ok(assistant_message)
 }
