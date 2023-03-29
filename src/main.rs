@@ -6,6 +6,11 @@ use colored::*;
 use gptcli_net::{send_gpt_request, GptRequestParams};
 use gptcli_utils::{read_api_key, show_logo, show_progressbar};
 use rustyline::error::ReadlineError;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use tokio::signal::unix::{signal, SignalKind};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -87,6 +92,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         api_key = read_api_key();
     }
 
+    let cancel_request = Arc::new(AtomicBool::new(false));
+    let mut ctrl_c_signal = signal(SignalKind::interrupt())?;
+
+    let cancel_request_clone = cancel_request.clone();
+    tokio::spawn(async move {
+        while let Some(_) = ctrl_c_signal.recv().await {
+            cancel_request_clone.store(true, Ordering::SeqCst);
+        }
+    });
+
     let mut messages: Vec<GptMessage> = Vec::new();
 
     let prompt = matches.get_one::<String>("prompt").unwrap();
@@ -97,22 +112,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             content: prompt.to_string(),
         });
 
-        let assistant_message = request_gpt(GptRequestParams {
+        let assistant_message_result = request_gpt(GptRequestParams {
             url: &url,
             api_key: &api_key,
             messages: &messages,
             max_tokens: max_tokens.parse().unwrap(),
             model: &model,
             temperature: temperature.parse().unwrap(),
+            cancel_request: &cancel_request,
         })
-        .await?;
-
-        messages.push(assistant_message.clone());
+        .await;
+        match assistant_message_result {
+            Ok(assistant_message) => {
+                messages.push(assistant_message.clone());
+            }
+            Err(RequestError::Cancelled) => {
+                println!("Request canceled by user.");
+            }
+            Err(RequestError::Other(err)) => {
+                println!("Error: {:?}", err);
+            }
+        }
     }
 
     let mut rl = rustyline::DefaultEditor::new()?;
     loop {
         let readline = rl.readline("enter your message:");
+
         match readline {
             Ok(line) => {
                 if line == "exit" {
@@ -126,27 +152,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     role: "user".to_string(),
                     content: line.to_string(),
                 });
-                let assistant_message = request_gpt(GptRequestParams {
+                let assistant_message_result = request_gpt(GptRequestParams {
                     url: &url,
                     api_key: &api_key,
                     messages: &messages,
                     max_tokens: max_tokens.parse().unwrap(),
                     model: &model,
                     temperature: temperature.parse().unwrap(),
+                    cancel_request: &cancel_request,
                 })
-                .await?;
-                messages.push(assistant_message.clone());
+                .await;
+                match assistant_message_result {
+                    Ok(assistant_message) => {
+                        messages.push(assistant_message.clone());
+                    }
+                    Err(RequestError::Cancelled) => {
+                        cancel_request.store(false, Ordering::SeqCst);
+                        //  break;
+                    }
+                    Err(RequestError::Other(err)) => {
+                        println!("Error: {:?}", err);
+                        cancel_request.store(false, Ordering::SeqCst);
+                        break;
+                    }
+                }
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Control+C");
+                cancel_request.store(false, Ordering::SeqCst);
                 break;
             }
             Err(ReadlineError::Eof) => {
                 println!("Control+D");
+                cancel_request.store(false, Ordering::SeqCst);
                 break;
             }
             Err(err) => {
                 println!("Error: {:?}", err);
+                cancel_request.store(false, Ordering::SeqCst);
                 break;
             }
         }
@@ -154,17 +197,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn request_gpt(
-    params: GptRequestParams<'_>,
-) -> Result<GptMessage, Box<dyn std::error::Error>> {
-    let pb = show_progressbar();
-    let response_content = send_gpt_request(params).await?;
+#[derive(Debug)]
+enum RequestError {
+    Cancelled,
+    Other(Box<dyn std::error::Error>),
+}
 
-    let assistant_message = GptMessage {
-        role: "assistant".to_string(),
-        content: response_content.to_string(),
-    };
+async fn request_gpt(params: GptRequestParams<'_>) -> Result<GptMessage, RequestError> {
+    let pb = show_progressbar();
+    let response_result = send_gpt_request(&params).await;
+
     pb.finish_and_clear();
-    println!("{}", format!("ChatGPT:{}", response_content).green());
-    Ok(assistant_message)
+
+    if params.cancel_request.load(Ordering::SeqCst) {
+        println!("{}", "Request canceled by user ".red());
+        // dbg!(response_result);
+        return Err(RequestError::Cancelled);
+    }
+
+    match response_result {
+        Ok(response_content) => {
+            let assistant_message = GptMessage {
+                role: "assistant".to_string(),
+                content: response_content.to_string(),
+            };
+            println!("{}", format!("ChatGPT:{}", response_content).green());
+            Ok(assistant_message)
+        }
+        Err(err) => {
+            // println!("Error: {:?}", err);
+            Err(RequestError::Other(err))
+        }
+    }
 }

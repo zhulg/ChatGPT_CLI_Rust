@@ -2,6 +2,8 @@ use reqwest::{self};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 pub struct GptRequestParams<'a> {
     pub url: &'a str,
@@ -10,6 +12,7 @@ pub struct GptRequestParams<'a> {
     pub model: &'a str,
     pub temperature: f32,
     pub messages: &'a Vec<GptMessage>,
+    pub cancel_request: &'a Arc<AtomicBool>,
 }
 
 #[derive(Debug)]
@@ -39,7 +42,7 @@ pub struct GptMessage {
     pub content: String,
 }
 
-pub async fn send_gpt_request(params: GptRequestParams<'_>) -> Result<String, Box<dyn Error>> {
+pub async fn send_gpt_request(params: &GptRequestParams<'_>) -> Result<String, Box<dyn Error>> {
     let request = GptRequest {
         model: params.model.to_string(),
         max_tokens: params.max_tokens,
@@ -59,6 +62,12 @@ pub async fn send_gpt_request(params: GptRequestParams<'_>) -> Result<String, Bo
         .error_for_status()?
         .json::<serde_json::Value>()
         .await?;
+
+    if params.cancel_request.load(Ordering::SeqCst) {
+        return Err(Box::new(GptError {
+            message: "Request cancelled by user...".to_string(),
+        }));
+    }
 
     let choices = response
         .get("choices")
