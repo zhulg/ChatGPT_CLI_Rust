@@ -23,6 +23,11 @@
 
 ![](./img/prompt.png)
 
+
+- Use Ctrl+c cancel the gpt request
+
+
+
 ## cargo Install
 
 - **If you have Rust installed, you can install the CLI using cargo:**
@@ -97,7 +102,6 @@ echo $OPENAI_API_KEY
 The value of your API key will be the resulting output.
 
 ## TODO:
-- [ ] Add more API parameters support
 - [ ] Support save message to file
 - [ ] import chat message from file
 - [ ] Support read prompt from file
