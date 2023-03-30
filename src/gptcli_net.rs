@@ -64,6 +64,7 @@ pub async fn send_gpt_request(params: &GptRequestParams<'_>) -> Result<String, B
         .await?;
 
     if params.cancel_request.load(Ordering::SeqCst) {
+        println!("Request cancelled by user 2 ...");
         return Err(Box::new(GptError {
             message: "Request cancelled by user...".to_string(),
         }));

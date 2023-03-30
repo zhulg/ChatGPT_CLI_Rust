@@ -10,7 +10,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::ctrl_c;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -93,13 +93,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let cancel_request = Arc::new(AtomicBool::new(false));
-    let mut ctrl_c_signal = signal(SignalKind::interrupt())?;
-
     let cancel_request_clone = cancel_request.clone();
     tokio::spawn(async move {
-        while let Some(_) = ctrl_c_signal.recv().await {
-            cancel_request_clone.store(true, Ordering::SeqCst);
-        }
+        ctrl_c().await.unwrap();
+        println!(" Ctrl+C pressed, canceling request 1 ... ");
+        cancel_request_clone.store(true, Ordering::SeqCst);
     });
 
     let mut messages: Vec<GptMessage> = Vec::new();
