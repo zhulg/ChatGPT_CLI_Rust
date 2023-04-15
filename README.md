@@ -4,7 +4,6 @@
 - A tool for chatting using the ChatGPT API, written in Rust CLI.
 - You can use this tool to chat, just by setting your API Key.
 - You can modify the API domain and other API parameters when you start the chat.
-- If you like this tool, please join me to complete the TODO list, and let's improve this tool together
 
 
 ## QuickStart
@@ -101,7 +100,3 @@ echo $OPENAI_API_KEY
 ```
 The value of your API key will be the resulting output.
 
-## TODO:
-- [ ] Support save message to file
-- [ ] import chat message from file
-- [ ] Support read prompt from file
