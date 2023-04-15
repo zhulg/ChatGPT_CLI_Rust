@@ -1,9 +1,8 @@
 # ChatGPT CLI
 
-
-- A tool for chatting using the ChatGPT API, written in Rust CLI.
-- You can use this tool to chat, just by setting your API Key.
-- You can modify the API domain and other API parameters when you start the chat.
+- This Rust CLI tool uses the ChatGPT API for chatting. To begin chatting, simply provide your API key.
+- In addition to chatting, this tool allows you to customize the API domain and parameters.
+- Furthermore, the tool supports saving conversations to a file during chat sessions.
 
 
 ## QuickStart
