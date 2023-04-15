@@ -51,6 +51,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Sets the prompt for this session."),
         )
         .arg(
+           Arg::new("save")
+        .short('s')
+        .long("save")
+        .default_value("conversation.txt")
+        .help("Save the conversation to a file (default: conversation.txt)."),
+       )
+        .arg(
             Arg::new("model")
                 .action(ArgAction::Set)
                 .short('m')
@@ -86,6 +93,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let model = matches.get_one::<String>("model").unwrap();
     let temperature = matches.get_one::<String>("temperature").unwrap();
     let api_key_cli = matches.get_one::<String>("APIKey").unwrap();
+    let save_to_file = matches.get_one::<String>("save").unwrap();
+
     let url = format!("https://{}/v1/chat/completions", domain_name);
     let mut api_key = String::new();
     if api_key_cli.is_empty() {
@@ -110,6 +119,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             content: prompt.to_string(),
         });
 
+        if !save_to_file.is_empty() {
+            save_message_to_file(save_to_file, &messages.last().unwrap())?;
+        }
+
         let assistant_message_result = request_gpt(GptRequestParams {
             url: &url,
             api_key: &api_key,
@@ -123,6 +136,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match assistant_message_result {
             Ok(assistant_message) => {
                 messages.push(assistant_message.clone());
+                if !save_to_file.is_empty() {
+                    save_message_to_file(&save_to_file, &messages.last().unwrap())?;
+                }
             }
             Err(RequestError::Cancelled) => {
                 println!("Request canceled by user.");
@@ -150,6 +166,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     role: "user".to_string(),
                     content: line.to_string(),
                 });
+
+                if !save_to_file.is_empty() {
+                    save_message_to_file(&save_to_file, &messages.last().unwrap())?;
+                }
                 let assistant_message_result = request_gpt(GptRequestParams {
                     url: &url,
                     api_key: &api_key,
@@ -163,6 +183,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match assistant_message_result {
                     Ok(assistant_message) => {
                         messages.push(assistant_message.clone());
+                        if !save_to_file.is_empty() {
+                            save_message_to_file(&save_to_file, &messages.last().unwrap())?;
+                        }
                     }
                     Err(RequestError::Cancelled) => {
                         cancel_request.store(false, Ordering::SeqCst);
@@ -227,4 +250,22 @@ async fn request_gpt(params: GptRequestParams<'_>) -> Result<GptMessage, Request
             Err(RequestError::Other(err))
         }
     }
+}
+
+fn save_message_to_file(filename: &str, message: &GptMessage) -> std::io::Result<()> {
+    use std::fs::OpenOptions;
+    use std::io::prelude::*;
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .append(true)
+        .open(filename)?;
+
+    if message.role == "user" {
+        writeln!(file, "user: {}", message.content)?;
+    } else if message.role == "assistant" {
+        writeln!(file, "chatgpt: {}", message.content)?;
+    }
+    Ok(())
 }
