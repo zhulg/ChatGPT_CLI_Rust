@@ -1,7 +1,7 @@
 # ChatGPT CLI
 
 - This Rust CLI tool uses the ChatGPT API for chatting. To begin chatting, simply provide your API key.
-- In addition to chatting, this tool allows you to customize the API domain and parameters.
+- In addition to chatting, this tool allows you to customize the API domain and parameters.You can even set a proxy domain and bypass VPN access.
 - Furthermore, the tool supports saving conversations to a file during chat sessions.
 
 
